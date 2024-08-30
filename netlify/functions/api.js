@@ -22,6 +22,7 @@ app.listen(port, async () => {
 const rpcs = {
     42161: process.env.ARBITRUM_RPC,
     8453: process.env.BASE_RPC,
+    60808: process.env.BOB_RPC,
 };
 
 const abi = require("../../src/deal.json");
