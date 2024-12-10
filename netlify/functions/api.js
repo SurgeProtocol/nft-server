@@ -26,6 +26,7 @@ const rpcs = {
 };
 
 const abi = require("../../src/deal.json");
+const abiV2 = require("../../src/dealV2.json");
 
 router.get('/chain/:chainId/deal/:address/token/:tokenId', async (req, res) => {
     const { chainId, address, tokenId } =  req.params;
@@ -37,10 +38,9 @@ router.get('/chain/:chainId/deal/:address/token/:tokenId', async (req, res) => {
 
     try {
         const rpc = rpcs[chainId];
-        const provider = new ethers.JsonRpcProvider(rpc);
         const multicall = new Multicall({ nodeUrl: rpc, tryAggregate: true });
 
-        const callInfo = {
+        let callInfo = {
             reference: 'deal',
             contractAddress: address,
             abi: abi,
@@ -55,9 +55,9 @@ router.get('/chain/:chainId/deal/:address/token/:tokenId', async (req, res) => {
             ],
         }
 
-        const results = (await multicall.call(callInfo)).results['deal']['callsReturnContext'];;
+        let results = (await multicall.call(callInfo)).results['deal']['callsReturnContext'];
 
-        const response = {
+        let response = {
             id: tokenId,
             name: results[0].returnValues[0],
             description: results[1].returnValues[0],
@@ -66,6 +66,22 @@ router.get('/chain/:chainId/deal/:address/token/:tokenId', async (req, res) => {
             owner: results[4].returnValues[0],
             tba: results[5].returnValues[0],
             image: results[6].returnValues[0],
+        }
+
+        if(!response.image){
+            callInfo = {
+                reference: 'deal',
+                contractAddress: address,
+                abi: abiV2,
+                calls: [
+                    { reference: 'configuration', methodName: 'getConfiguration' }
+                ],
+            }
+
+            results = (await multicall.call(callInfo)).results['deal']['callsReturnContext'];
+
+            response.image = results[0].returnValues[3];
+            response.description = results[0].returnValues[4];
         }
 
         res.header("Content-Type",'application/json');
